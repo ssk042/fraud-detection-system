@@ -1,5 +1,8 @@
 # Fraud Detection System
 
+## Live Demo
+[View Dashboard](https://fraud-detection-system-xmkd449jxsd67vcpemm3qo.streamlit.app/)
+
 ## Problem
 Credit card fraud is rare but costly. With only 0.17% of transactions being fraudulent,
 a naive model that flags nothing achieves 99.8% accuracy — and is completely useless.
