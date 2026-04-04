@@ -16,7 +16,7 @@ st.markdown("Credit card fraud detection using Logistic Regression and Isolation
 # Load data and models
 @st.cache_data
 def load_data():
-    df = pd.read_csv('data/creditcard.csv')
+    df = pd.read_csv('data/sample.csv')
     return df
 
 @st.cache_resource
