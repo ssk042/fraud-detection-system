@@ -50,8 +50,3 @@ Fraud amounts cluster between $1–$106, suggesting deliberate evasion of large-
 
 ## Tech Stack
 Python, scikit-learn, pandas, NumPy, matplotlib, seaborn
-
-## Resume Bullet
-Built fraud detection system using Logistic Regression and Isolation Forest on 284K+ transactions,
-achieving 92% fraud recall and 0.97 ROC-AUC through threshold optimization —
-reducing manual review workload by 99% via risk-based flagging.
