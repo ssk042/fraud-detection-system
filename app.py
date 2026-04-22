@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
-import sys
+import sys 
 sys.path.append('src')
 from features import engineer_features
 
@@ -23,10 +23,11 @@ def load_data():
 def load_models():
     lr_model = joblib.load('outputs/models/logistic_regression.pkl')
     scaler = joblib.load('outputs/models/scaler.pkl')
-    return lr_model, scaler
+    iso_model = joblib.load('outputs/models/isolation_forest.pkl')
+    return lr_model, scaler, iso_model
 
 df = load_data()
-lr_model, scaler = load_models()
+lr_model, scaler, iso_model = load_models()
 df_features = engineer_features(df)
 
 # Sidebar
@@ -77,20 +78,80 @@ X = df_features.drop(columns=['Class'])
 y = df_features['Class']
 
 from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42
+)
+
+# Logistic Regression scoring
 X_test_scaled = scaler.transform(X_test)
 lr_probs = lr_model.predict_proba(X_test_scaled)[:, 1]
 
 threshold = np.percentile(lr_probs, 100 - threshold_pct)
-flagged_mask = lr_probs >= threshold
-fraud_caught = y_test.values[flagged_mask].sum()
-total_flagged = flagged_mask.sum()
-false_alarms = total_flagged - fraud_caught
+lr_flagged = lr_probs >= threshold
+lr_fraud_caught = y_test.values[lr_flagged].sum()
+lr_total_flagged = lr_flagged.sum()
+lr_false_alarms = lr_total_flagged - lr_fraud_caught
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Transactions Flagged", f"{total_flagged:,}")
-col2.metric("Fraud Caught", f"{fraud_caught}")
-col3.metric("Catch Rate", f"{fraud_caught / y_test.sum():.1%}")
-col4.metric("False Alarms", f"{false_alarms:,}")
+# Isolation Forest scoring
+iso_preds = iso_model.predict(X_test)   # -1 = anomaly, 1 = normal
+iso_flagged = (iso_preds == -1)
+iso_fraud_caught = y_test.values[iso_flagged].sum()
+iso_total_flagged = iso_flagged.sum()
+iso_false_alarms = iso_total_flagged - iso_fraud_caught
 
-st.info(f"By reviewing only the top {threshold_pct}% highest-risk transactions, the model catches {fraud_caught / y_test.sum():.1%} of all fraud — reducing manual review workload by {(1 - total_flagged/len(y_test)):.1%}.")
+# Agreement-based combined signal
+both_flagged = lr_flagged & iso_flagged
+both_fraud_caught = y_test.values[both_flagged].sum()
+both_total_flagged = both_flagged.sum()
+both_false_alarms = both_total_flagged - both_fraud_caught
+
+st.subheader("Model Comparison")
+
+comparison_df = pd.DataFrame({
+    'Model': ['Logistic Regression', 'Isolation Forest', 'Both Models'],
+    'Transactions Flagged (Workload)': [
+        lr_total_flagged,
+        iso_total_flagged,
+        both_total_flagged
+    ],
+    'Fraud Caught': [
+        lr_fraud_caught,
+        iso_fraud_caught,
+        both_fraud_caught
+    ],
+    'Catch Rate (Recall)': [
+        lr_fraud_caught / y_test.sum(),
+        iso_fraud_caught / y_test.sum(),
+        both_fraud_caught / y_test.sum()
+    ],
+    'False Alarms (False Positives)': [
+        lr_false_alarms,
+        iso_false_alarms,
+        both_false_alarms
+    ],
+    'Precision': [
+        lr_fraud_caught / lr_total_flagged if lr_total_flagged > 0 else 0,
+        iso_fraud_caught / iso_total_flagged if iso_total_flagged > 0 else 0,
+        both_fraud_caught / both_total_flagged if both_total_flagged > 0 else 0
+    ]
+})
+
+comparison_df['Catch Rate (Recall)'] = comparison_df['Catch Rate (Recall)'].map(lambda x: f"{x:.1%}")
+comparison_df['Precision'] = comparison_df['Precision'].map(lambda x: f"{x:.1%}")
+
+st.dataframe(comparison_df, use_container_width=True)
+
+overlap_count = (lr_flagged & iso_flagged).sum()
+
+st.info(
+    f"Logistic Regression flagged {lr_total_flagged:,} transactions, "
+    f"Isolation Forest flagged {iso_total_flagged:,}, "
+    f"and both models agreed on {overlap_count:,} transactions."
+)
+
+st.info(
+    f"At the current threshold, Logistic Regression reviews the top {threshold_pct}% highest-risk transactions, "
+    f"while Isolation Forest independently flags anomalous behavior. "
+    f"This allows comparison between supervised fraud scoring and anomaly-based detection."
+)
