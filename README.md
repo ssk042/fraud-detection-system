@@ -102,8 +102,3 @@ This reflects how fraud teams operate in practice:
 
 ## Tech Stack
 Python, pandas, NumPy, scikit-learn, matplotlib, seaborn, Streamlit  
-
----
-
-## One-Line Summary
-Built a fraud detection system that uses machine learning to **rank transactions by risk**, enabling teams to catch most fraud while reviewing only a small fraction of activity.
