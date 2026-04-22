@@ -46,18 +46,35 @@ st.divider()
 
 # Row 2 - Charts
 st.subheader("Exploratory Analysis")
+df['hour'] = (df['Time'] // 3600) % 24
 col1, col2 = st.columns(2)
 
 with col1:
-    fig, ax = plt.subplots(figsize=(6, 4))
-    df['hour'] = (df['Time'] // 3600) % 24
-    df[df['Class'] == 0]['hour'].hist(bins=24, ax=ax, color='steelblue', alpha=0.7, label='Legit')
-    df[df['Class'] == 1]['hour'].hist(bins=24, ax=ax, color='crimson', alpha=0.7, label='Fraud')
-    ax.set_title('Transactions by Hour')
-    ax.set_xlabel('Hour of Day')
-    ax.set_ylabel('Count')
-    ax.legend()
-    st.pyplot(fig)
+    st.markdown("**Transactions by Hour (Class Comparison)**")
+
+    subcol1, subcol2 = st.columns(2)
+
+    # Legit
+    with subcol1:
+        fig, ax = plt.subplots(figsize=(4,3))
+        df[df['Class'] == 0]['hour'].hist(
+            bins=24, color='steelblue', alpha=0.8
+        )
+        ax.set_title('Legit')
+        ax.set_xlabel('Hour')
+        ax.set_ylabel('Count')
+        st.pyplot(fig)
+
+    # Fraud
+    with subcol2:
+        fig, ax = plt.subplots(figsize=(4,3))
+        df[df['Class'] == 1]['hour'].hist(
+            bins=24, color='crimson', alpha=0.8
+        )
+        ax.set_title('Fraud')
+        ax.set_xlabel('Hour')
+        ax.set_ylabel('Count')
+        st.pyplot(fig)
 
 with col2:
     fig, ax = plt.subplots(figsize=(6, 4))
